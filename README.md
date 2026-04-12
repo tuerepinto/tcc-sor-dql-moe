@@ -101,3 +101,8 @@ Aviso
 -----
 
 Este projeto é estritamente acadêmico e voltado à pesquisa em microestrutura de mercado. Os modelos aqui treinados **não** constituem recomendação de investimento nem devem ser utilizados em produção (dinheiro real) sem validações adequadas de risco, compliance e auditoria independente.
+
+Licença
+-------
+
+Este projeto é disponibilizado sob uma Licença de Uso Acadêmico. Para detalhes completos sobre permissões e restrições (incluindo proibição de uso comercial), consulte o arquivo `LICENSE.md` na raiz do repositório.
