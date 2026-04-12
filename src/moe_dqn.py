@@ -23,11 +23,11 @@ class SingleExpert(nn.Module):
         return self.network(x)
 
 
-class Expert(nn.Module):
+class MoENetwork(nn.Module):
     """Arquitetura Mixture of Experts (MoE) usada como "cérebro" do DQN.
 
     Esta é a classe que os testes utilizam diretamente, com a assinatura
-    `Expert(input_dim=5, output_dim=3, num_experts=3)`.
+    `MoENetwork(input_dim=5, output_dim=3, num_experts=3)`.
     """
 
     def __init__(self, input_dim: int = 5, output_dim: int = 3, num_experts: int = 3) -> None:

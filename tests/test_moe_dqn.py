@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 # Importa a rede neural que criamos
-from src.moe_dqn import Expert
+from src.moe_dqn import MoENetwork
 
 @pytest.fixture
 def model():
@@ -11,7 +11,7 @@ def model():
     Fixture que instancia a rede MoE com os parâmetros padrão do nosso TCC:
     5 entradas (LOB + Inventário), 3 saídas (Ações) e 3 Especialistas.
     """
-    return Expert(input_dim=5, output_dim=3, num_experts=3)
+    return MoENetwork(input_dim=5, output_dim=3, num_experts=3)
 
 @pytest.fixture
 def dummy_input():
