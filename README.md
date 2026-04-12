@@ -103,6 +103,11 @@ tcc-sor-dql-moe/
 │   ├── test_sor_env.py   # Testes do ambiente B3LimitOrderBookEnv
 │   └── test_moe_dqn.py   # Testes da rede MoE (Expert)
 │
+├── notebooks/            # Notebooks Jupyter para exploração e demonstrações
+│   └── 01_exploracao_lob.ipynb
+│
+├── data/                 # Arquivos de dados brutos ou pré-processados (CSV, Parquet, etc.)
+│
 ├── README.md             # Documentação principal do projeto
 ├── requirements.txt      # Dependências do ambiente Python
 ├── LICENSE.md            # Licença de uso acadêmico
