@@ -56,7 +56,8 @@ def evaluate_agent(model, env):
         # Escolhe a melhor ação (Explotação pura, sem Epsilon)
         action = torch.argmax(q_values).item()
 
-        next_state, reward, done, _, _ = env.step(action)
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        done = bool(terminated or truncated)
 
         # Acumula apenas as recompensas de execução (ignorando penalidades de tempo esgotado para o cálculo do preço)
         if reward < 0 and env.inventory_remaining > 0: 
@@ -109,7 +110,7 @@ if __name__ == "__main__":
 
     # 3. Rodando a IA (Carregando o modelo treinado)
     print("\nExecutando Inteligência Artificial (MoE-DQN)...")
-    model_ia = MoEDQN(state_dim=5, action_dim=4, num_experts=3)
+    model_ia = MoENetwork(input_dim=5, output_dim=4, num_experts=3)
     # NOTA: Aqui você usaria model_ia.load_state_dict(torch.load('modelo_treinado.pth'))
 
     preco_ia, vol_ia = evaluate_agent(model_ia, env)

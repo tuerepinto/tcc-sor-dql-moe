@@ -87,7 +87,7 @@ def test_step_action_buy_large(env):
     assert reward == pytest.approx(0.0)
 
 def test_episode_termination(env):
-    """Testa se o episódio termina (terminated=True) quando o inventário zera."""
+    """Testa se o episódio é truncado no fim dos dados com inventário restante."""
     # Mock tem 5 timesteps, so current_step vai de 0-4
     # Ação 1: compra 100, inventory = 900, current_step = 1
     obs, reward, terminated, truncated, info = env.step(1)
@@ -107,11 +107,12 @@ def test_episode_termination(env):
     # Ação 3: compra 200, inventory = 400, current_step = 4
     obs, reward, terminated, truncated, info = env.step(3)
     assert info['inventory_left'] == 400
-    # current_step é 4, len(lob_b3) - 1 = 4, então done = True
-    assert terminated
+    # current_step é 4, len(lob_b3) - 1 = 4, então time limit -> truncated=True
+    assert not terminated
+    assert truncated
 
 def test_episode_truncation(env):
-    """Testa se o episódio termina quando alcança o fim dos dados."""
+    """Testa truncation quando alcança o fim dos dados sem zerar inventário."""
     # O mock tem 5 linhas (índices 0-4)
     # Após reset, current_step = 0
     # Após step 1: current_step = 1, done = 1 >= 4? No
@@ -122,7 +123,9 @@ def test_episode_truncation(env):
         obs, reward, terminated, truncated, info = env.step(0)
         if i < 3:  # Primeiros 3 steps
             assert not terminated
+            assert not truncated
     
     # Após o 4º step
     assert env.current_step == 4
-    assert terminated
+    assert not terminated
+    assert truncated

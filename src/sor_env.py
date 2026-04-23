@@ -150,16 +150,29 @@ class MultiVenueSOREnv(gym.Env):
         row_base = self.lob_base.iloc[self.current_step]
 
         # Roteamento com pattern matching - Python 3.10+
+        inv = float(self.inventory_remaining)
+
         match action:
-            case 0:  # Aguardar
+            case 0:
                 execution = ExecutionResult(cost=0.0, volume_executed=0.0)
-            case 1:  # Roteia para B3
-                execution = self._execute_order(100, row_b3)
-            case 2:  # Roteia para Base Exchange
-                execution = self._execute_order(100, row_base)
-            case 3:  # Slicing (Agregação de Liquidez)
-                exec_b3 = self._execute_order(100, row_b3)
-                exec_base = self._execute_order(100, row_base)
+
+            case 1:
+                vol = min(100.0, inv)
+                execution = self._execute_order(vol, row_b3) if vol > 0 else ExecutionResult(0.0, 0.0)
+
+            case 2:
+                vol = min(100.0, inv)
+                execution = self._execute_order(vol, row_base) if vol > 0 else ExecutionResult(0.0, 0.0)
+
+            case 3:
+                # Divide o restante entre as duas venues, respeitando inventário
+                vol_total = min(200.0, inv)
+                vol_b3 = min(100.0, vol_total)
+                vol_base = max(0.0, vol_total - vol_b3)
+
+                exec_b3 = self._execute_order(vol_b3, row_b3) if vol_b3 > 0 else ExecutionResult(0.0, 0.0)
+                exec_base = self._execute_order(vol_base, row_base) if vol_base > 0 else ExecutionResult(0.0, 0.0)
+
                 execution = ExecutionResult(
                     cost=exec_b3.cost + exec_base.cost,
                     volume_executed=exec_b3.volume_executed + exec_base.volume_executed
@@ -176,18 +189,17 @@ class MultiVenueSOREnv(gym.Env):
         
         # Incrementar step
         self.current_step += 1
-        done = (
-            self.inventory_remaining <= 0 
-            or self.current_step >= len(self.lob_b3) - 1
-        )
+        terminated = self.inventory_remaining <= 0
+        time_limit = self.current_step >= len(self.lob_b3) - 1
+        truncated = bool(time_limit and not terminated)
 
         # Calcular reward (função pura)
         reward = self._calculate_reward(
             validation=validation,
             inventory_executed=inventory_executed,
-            is_terminal=done,
+            is_terminal=(terminated or truncated),
             remaining_inventory=self.inventory_remaining,
             arrival_price=self.arrival_price
         )
 
-        return self._get_obs(), reward, done, False, {'inventory_left': self.inventory_remaining}
+        return self._get_obs(), reward, bool(terminated), bool(truncated), {'inventory_left': self.inventory_remaining}

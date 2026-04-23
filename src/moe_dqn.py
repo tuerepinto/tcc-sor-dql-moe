@@ -48,7 +48,7 @@ class MoENetwork(nn.Module):
             [SingleExpert(input_dim, output_dim) for _ in range(num_experts)]
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_aux: bool = False):
         # x é o estado do LOB. Shape esperado: (batch_size, input_dim)
 
         # Passo 1: o Gerente avalia o mercado e distribui os pesos
@@ -61,10 +61,20 @@ class MoENetwork(nn.Module):
 
         # Passo 3: ponderamos a saída de cada especialista pelo peso do Gerente
         # gate_weights -> (batch_size, num_experts, 1)
-        weighted_expert_outputs = gate_weights.unsqueeze(-1) * expert_outputs
-
         # Passo 4: somamos ao longo da dimensão de especialistas
         # Shape final: (batch_size, output_dim)
-        final_q_values = torch.sum(weighted_expert_outputs, dim=1)
+        final_q_values = torch.sum(gate_weights.unsqueeze(-1) * expert_outputs, dim=1)
 
-        return final_q_values
+        if not return_aux:
+            return final_q_values
+
+        # Auxiliar de load-balancing: minimizar -H(gate) equivale a maximizar entropia.
+        eps = 1e-8
+        entropy = -(gate_weights * (gate_weights + eps).log()).sum(dim=-1).mean()
+        aux_loss = -entropy
+
+        aux_info = {
+            "gate_entropy": float(entropy.detach().cpu().item()),
+            "gate_mean": gate_weights.detach().mean(dim=0).cpu(),
+        }
+        return final_q_values, aux_loss, aux_info
