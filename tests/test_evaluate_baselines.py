@@ -57,7 +57,7 @@ class TestBaselinesEvaluation:
         Testa se o algoritmo TWAP divide a ordem corretamente e calcula o preço médio.
         """
         total_inventory = 500
-        preco_medio, vol_executado = simulate_twap(env, total_inventory)
+        preco_medio, vol_executado, meta = simulate_twap(env, total_inventory)
 
         # O TWAP deve tentar executar todo o inventário se houver liquidez
         assert vol_executado > 0
@@ -66,13 +66,15 @@ class TestBaselinesEvaluation:
         # Como o TWAP roteia só para a B3 e o nosso mock da B3 tem ask_1 = 10.0,
         # o preço médio deve ser exatamente 10.0 (pois há 100 de volume por step e o TWAP pedirá 500/9 = 55 por step)
         assert preco_medio == pytest.approx(10.0, rel=1e-2)
+        assert isinstance(meta, dict)
+        assert "rejects" in meta
 
     def test_evaluate_agent_execution(self, env, untrained_model):
         """
         Testa se a função de avaliação da IA consegue rodar um episódio completo
         sem quebrar e retorna valores válidos de preço e volume.
         """
-        preco_medio, vol_executado = evaluate_agent(untrained_model, env)
+        preco_medio, vol_executado, meta = evaluate_agent(untrained_model, env)
 
         # Verifica se a IA executou algum volume (mesmo sendo um modelo não treinado, 
         # ele vai tomar ações aleatórias baseadas nos pesos iniciais da rede)
@@ -82,10 +84,12 @@ class TestBaselinesEvaluation:
         # O preço médio deve ser um número real (float) e maior ou igual a zero
         assert isinstance(preco_medio, float)
         assert preco_medio >= 0.0
+        assert isinstance(meta, dict)
+        assert "rejects" in meta
 
     def test_twap_vs_agent_format(self, env, untrained_model):
         """
-        Garante que ambas as funções retornam a mesma estrutura de dados (Tupla: float, int)
+        Garante que ambas as funções retornam a mesma estrutura de dados
         para que a comparação no script principal não quebre.
         """
         total_inventory = 100
@@ -94,8 +98,10 @@ class TestBaselinesEvaluation:
         res_twap = simulate_twap(env, total_inventory)
         res_ia = evaluate_agent(untrained_model, env)
 
-        assert len(res_twap) == 2
-        assert len(res_ia) == 2
+        assert len(res_twap) == 3
+        assert len(res_ia) == 3
 
         assert isinstance(res_twap[0], float) # Preço
         assert isinstance(res_ia[0], float)   # Preço
+        assert isinstance(res_twap[2], dict)
+        assert isinstance(res_ia[2], dict)

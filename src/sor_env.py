@@ -202,4 +202,25 @@ class MultiVenueSOREnv(gym.Env):
             arrival_price=self.arrival_price
         )
 
-        return self._get_obs(), reward, bool(terminated), bool(truncated), {'inventory_left': self.inventory_remaining}
+        info = {
+            "inventory_left": float(self.inventory_remaining),
+            "arrival_price": float(self.arrival_price),
+            
+            # execução REAL (auditável)
+            "executed_volume": float(inventory_executed),  # 0 se rejeitou ou aguardou
+            "executed_cost": float(execution.cost if validation.is_valid else 0.0),
+
+            # métricas de preço
+            "avg_price": float(validation.avg_price),
+            "slippage": float(validation.slippage),
+
+            # validação/risco
+            "is_valid": bool(validation.is_valid),
+            "rejection_reason": validation.rejection_reason,
+
+            # tempo (para análises / wrappers)
+            "t": int(self.current_step),
+            "T": int(len(self.lob_b3) - 1),
+        }
+
+        return self._get_obs(), float(reward), bool(terminated), bool(truncated), info

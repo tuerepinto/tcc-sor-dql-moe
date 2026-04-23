@@ -78,3 +78,72 @@ class MoENetwork(nn.Module):
             "gate_mean": gate_weights.detach().mean(dim=0).cpu(),
         }
         return final_q_values, aux_loss, aux_info
+
+
+class SingleQuantileExpert(nn.Module):
+    """Expert que produz quantis por ação.
+
+    Saída: (B, action_dim, n_quantiles)
+    """
+
+    def __init__(self, input_dim: int, action_dim: int, n_quantiles: int) -> None:
+        super().__init__()
+        self.action_dim = action_dim
+        self.n_quantiles = n_quantiles
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, action_dim * n_quantiles),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.network(x)  # (B, A*NQ)
+        return out.view(x.size(0), self.action_dim, self.n_quantiles)
+
+
+class MoEQuantileNetwork(nn.Module):
+    """MoE para QR-DQN.
+
+    Forward:
+      - return_aux=False -> (B, action_dim, n_quantiles)
+      - return_aux=True  -> (q, aux_loss, aux_info)
+    """
+
+    def __init__(self, input_dim: int = 5, action_dim: int = 4, num_experts: int = 3, n_quantiles: int = 51) -> None:
+        super().__init__()
+        self.num_experts = num_experts
+        self.action_dim = action_dim
+        self.n_quantiles = n_quantiles
+
+        self.gating_network = nn.Sequential(
+            nn.Linear(input_dim, 32),
+            nn.ReLU(),
+            nn.Linear(32, num_experts),
+        )
+        self.experts = nn.ModuleList(
+            [SingleQuantileExpert(input_dim, action_dim, n_quantiles) for _ in range(num_experts)]
+        )
+
+    def forward(self, x: torch.Tensor, return_aux: bool = False):
+        gate_logits = self.gating_network(x)          # (B, E)
+        gate_weights = F.softmax(gate_logits, dim=-1) # (B, E)
+
+        # (B, E, A, NQ)
+        expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
+
+        # Mistura densa para manter consistência com o MoE do DQN padrão.
+        q = torch.sum(gate_weights.view(-1, self.num_experts, 1, 1) * expert_outputs, dim=1)
+
+        if not return_aux:
+            return q
+
+        eps = 1e-8
+        entropy = -(gate_weights * (gate_weights + eps).log()).sum(dim=-1).mean()
+        aux_loss = -entropy
+        aux_info = {
+            "gate_entropy": float(entropy.detach().cpu().item()),
+            "gate_mean": gate_weights.detach().mean(dim=0).cpu(),
+        }
+        return q, aux_loss, aux_info

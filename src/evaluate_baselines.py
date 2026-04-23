@@ -1,131 +1,109 @@
 import torch
 import numpy as np
 import pandas as pd
+from pathlib import Path
+from typing import Dict, Tuple
+
 from src.sor_env import MultiVenueSOREnv
 from src.moe_dqn import MoENetwork
 
-def simulate_twap(env, total_inventory):
-    """
-    Simula o algoritmo TWAP (Time-Weighted Average Price).
-    Divide a ordem em fatias iguais ao longo do tempo, roteando apenas para a B3.
-    """
-    env.reset()
-    total_steps = len(env.lob_b3) - 1
-    volume_per_step = total_inventory // total_steps
 
-    inventory = total_inventory
+def simulate_twap(env: MultiVenueSOREnv, total_inventory: float) -> Tuple[float, float, Dict]:
+    """
+    TWAP discreto e JUSTO:
+    - usa env.step() (mesmas regras e validações do ambiente)
+    - action=1 (B3) repetido é o TWAP "cego" no seu action space atual
+    """
+    _state, _ = env.reset()
+    done = False
+
     total_cost = 0.0
-    vol_executado_total = 0
+    total_vol = 0.0
+    rejects = 0
 
-    for step in range(total_steps):
-        if inventory <= 0:
-            break
+    while not done:
+        _state, _reward, terminated, truncated, info = env.step(1)
+        done = bool(terminated or truncated)
 
-        # TWAP tradicional é cego para fragmentação, roteia para a bolsa principal (B3)
-        row_b3 = env.lob_b3.iloc[step]
+        total_cost += float(info["executed_cost"])
+        total_vol += float(info["executed_volume"])
+        if not bool(info["is_valid"]):
+            rejects += 1
 
-        vol_to_execute = min(volume_per_step, inventory)
-        custo_step, vol_exec = env._execute_order(vol_to_execute, row_b3)
+    avg_price = (total_cost / total_vol) if total_vol > 0 else 0.0
+    return float(avg_price), float(total_vol), {"rejects": int(rejects)}
 
-        total_cost += custo_step
-        vol_executado_total += vol_exec
-        inventory -= vol_exec
 
-    preco_medio_twap = total_cost / vol_executado_total if vol_executado_total > 0 else 0
-    return preco_medio_twap, vol_executado_total
-
-def evaluate_agent(model, env):
-    """
-    Simula a execução usando a IA treinada (MoE-DQN).
-    """
+def evaluate_agent(model, env: MultiVenueSOREnv) -> Tuple[float, float, Dict]:
     state, _ = env.reset()
     done = False
 
-    inventory_inicial = env.total_inventory
-    arrival_price = env.arrival_price
-
-    # Vamos rastrear o custo total deduzindo da recompensa (Implementation Shortfall)
-    # Recompensa = -(Preço_Medio - Arrival_Price) * Volume
-    total_shortfall_cost = 0.0 
+    total_cost = 0.0
+    total_vol = 0.0
+    rejects = 0
 
     while not done:
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        st = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
         with torch.no_grad():
-            q_values = model(state_tensor)
+            q = model(st)
+            if q.dim() == 3:
+                q = q.mean(dim=-1)
+        action = int(torch.argmax(q, dim=1).item())
 
-        # Escolhe a melhor ação (Explotação pura, sem Epsilon)
-        action = torch.argmax(q_values).item()
-
-        next_state, reward, terminated, truncated, _ = env.step(action)
+        state, _reward, terminated, truncated, info = env.step(action)
         done = bool(terminated or truncated)
 
-        # Acumula apenas as recompensas de execução (ignorando penalidades de tempo esgotado para o cálculo do preço)
-        if reward < 0 and env.inventory_remaining > 0: 
-            total_shortfall_cost += abs(reward)
+        total_cost += float(info["executed_cost"])
+        total_vol += float(info["executed_volume"])
+        if not bool(info["is_valid"]):
+            rejects += 1
 
-        state = next_state
+    avg_price = (total_cost / total_vol) if total_vol > 0 else 0.0
+    return float(avg_price), float(total_vol), {"rejects": int(rejects)}
 
-    vol_executado = inventory_inicial - env.inventory_remaining
-
-    # Calcula o preço médio real que a IA conseguiu
-    if vol_executado > 0:
-        # Shortfall Total = (Preço Medio IA - Arrival Price) * Vol
-        # Preço Medio IA = (Shortfall Total / Vol) + Arrival Price
-        preco_medio_ia = (total_shortfall_cost / vol_executado) + arrival_price
-    else:
-        preco_medio_ia = 0.0
-
-    return preco_medio_ia, vol_executado
 
 if __name__ == "__main__":
-    print("--- Iniciando Avaliação de Baselines (Capítulo 8) ---")
-
-    # 1. Gerando Dados Mockados (Substitua pelos seus DataFrames reais de PETR4)
     steps = 500
     df_b3 = pd.DataFrame({
-        'ask_1': np.random.uniform(47.00, 47.10, steps),
-        'vol_ask_1': np.random.randint(100, 500, steps),
-        'ask_2': np.random.uniform(47.11, 47.20, steps), 'vol_ask_2': np.random.randint(100, 500, steps),
-        'ask_3': np.random.uniform(47.21, 47.30, steps), 'vol_ask_3': np.random.randint(100, 500, steps),
-        'ask_4': np.random.uniform(47.31, 47.40, steps), 'vol_ask_4': np.random.randint(100, 500, steps),
-        'ask_5': np.random.uniform(47.41, 47.50, steps), 'vol_ask_5': np.random.randint(100, 500, steps),
+        "ask_1": np.random.uniform(47.05, 47.15, steps), "vol_ask_1": np.random.randint(100, 500, steps),
+        "ask_2": np.random.uniform(47.16, 47.25, steps), "vol_ask_2": np.random.randint(100, 500, steps),
+        "ask_3": np.random.uniform(47.26, 47.35, steps), "vol_ask_3": np.random.randint(100, 500, steps),
+        "ask_4": np.random.uniform(47.36, 47.45, steps), "vol_ask_4": np.random.randint(100, 500, steps),
+        "ask_5": np.random.uniform(47.46, 47.55, steps), "vol_ask_5": np.random.randint(100, 500, steps),
     })
 
     df_base = pd.DataFrame({
-        'ask_1': np.random.uniform(46.98, 47.12, steps), # Base Exchange levemente diferente
-        'vol_ask_1': np.random.randint(50, 300, steps),
-        'ask_2': np.random.uniform(47.13, 47.22, steps), 'vol_ask_2': np.random.randint(50, 300, steps),
-        'ask_3': np.random.uniform(47.23, 47.32, steps), 'vol_ask_3': np.random.randint(50, 300, steps),
-        'ask_4': np.random.uniform(47.33, 47.42, steps), 'vol_ask_4': np.random.randint(50, 300, steps),
-        'ask_5': np.random.uniform(47.43, 47.52, steps), 'vol_ask_5': np.random.randint(50, 300, steps),
+        "ask_1": np.random.uniform(47.00, 47.10, steps), "vol_ask_1": np.random.randint(50, 300, steps),
+        "ask_2": np.random.uniform(47.11, 47.20, steps), "vol_ask_2": np.random.randint(50, 300, steps),
+        "ask_3": np.random.uniform(47.21, 47.30, steps), "vol_ask_3": np.random.randint(50, 300, steps),
+        "ask_4": np.random.uniform(47.31, 47.40, steps), "vol_ask_4": np.random.randint(50, 300, steps),
+        "ask_5": np.random.uniform(47.41, 47.50, steps), "vol_ask_5": np.random.randint(50, 300, steps),
     })
 
-    TOTAL_ORDER = 10000
-    env = MultiVenueSOREnv(df_b3, df_base, total_inventory=TOTAL_ORDER)
+    env = MultiVenueSOREnv(df_b3, df_base, total_inventory=10000)
 
-    # 2. Rodando o TWAP
-    print("\nExecutando Baseline: TWAP...")
-    preco_twap, vol_twap = simulate_twap(env, TOTAL_ORDER)
-    print(f"TWAP finalizado. Volume: {vol_twap} | Preço Médio: R$ {preco_twap:.4f}")
+    twap_price, twap_vol, twap_info = simulate_twap(env, env.total_inventory)
+    print(f"TWAP Volume: {twap_vol:.2f}")
+    print(f"TWAP Average Price: {twap_price:.4f}")
+    print(f"TWAP Rejects: {twap_info.get('rejects', 0)}")
 
-    # 3. Rodando a IA (Carregando o modelo treinado)
-    print("\nExecutando Inteligência Artificial (MoE-DQN)...")
-    model_ia = MoENetwork(input_dim=5, output_dim=4, num_experts=3)
-    # NOTA: Aqui você usaria model_ia.load_state_dict(torch.load('modelo_treinado.pth'))
+    model_path = Path("models/moe_dqn_sor.pth")
+    if model_path.exists():
+        model = MoENetwork(input_dim=5, output_dim=4, num_experts=3)
+        model.load_state_dict(torch.load(model_path, map_location="cpu"))
+        model.eval()
 
-    preco_ia, vol_ia = evaluate_agent(model_ia, env)
-    print(f"IA finalizada. Volume: {vol_ia} | Preço Médio: R$ {preco_ia:.4f}")
+        ia_price, ia_vol, ia_info = evaluate_agent(model, env)
+        print(f"IA Volume: {ia_vol:.2f}")
+        print(f"IA Average Price: {ia_price:.4f}")
+        print(f"IA Rejects: {ia_info.get('rejects', 0)}")
 
-    # 4. Resultados para o TCC
-    print("\n" + "="*40)
-    print("RESULTADOS DA COMPARAÇÃO (Slippage)")
-    print("="*40)
-    economia_por_acao = preco_twap - preco_ia
-    economia_total = economia_por_acao * TOTAL_ORDER
-
-    if economia_total > 0:
-        print(f"A IA superou o TWAP!")
-        print(f"Economia de R$ {economia_por_acao:.4f} por ação.")
-        print(f"Economia Total na Ordem Institucional: R$ {economia_total:.2f}")
+        diff = twap_price - ia_price
+        if ia_price < twap_price:
+            print(f"Conclusion: IA performed better (lower average price by {diff:.4f}).")
+        elif ia_price > twap_price:
+            print(f"Conclusion: TWAP performed better (lower average price by {-diff:.4f}).")
+        else:
+            print("Conclusion: Both performed equally.")
     else:
-        print("O TWAP foi melhor ou igual (O modelo IA precisa de mais épocas de treinamento).")
+        print(f"IA model not found at {model_path}. IA evaluation skipped.")
