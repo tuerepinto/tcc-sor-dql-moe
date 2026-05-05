@@ -26,6 +26,14 @@ dist/
 .coverage*
 htmlcov/
 .mypy_cache/
+coverage.xml
+
+# PyTorch / modelos e artefatos pesados
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+runs/
 
 # IDE/editor
 .vscode/

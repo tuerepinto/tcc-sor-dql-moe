@@ -88,14 +88,32 @@ Se você estiver utilizando notebooks Jupyter, certifique-se de ativar o ambient
 Estrutura do Projeto
 --------------------
 
-Uma estrutura típica pode incluir (nomes meramente ilustrativos):
+Estrutura atual do repositório (resumida):
 
-- `env/` – implementação do ambiente Gymnasium da B3/LOB.
-- `models/` – arquiteturas DQN, MoE e utilitários de rede neural.
-- `data/` – dados de mercado (não versionados ou com exemplos sintéticos).
-- `scripts/` – scripts de treinamento, avaliação e pré-processamento.
-
-Consulte o próprio repositório para a estrutura final.
+```
+tcc-sor-dql-moe/
+│
+├── src/                  # Código-fonte principal
+│   ├── __init__.py       # Torna 'src' um pacote Python
+│   ├── sor_env.py        # Ambiente do Limit Order Book (B3)
+│   └── moe_dqn.py        # Arquitetura Mixture of Experts (MoE) usada pelo DQN
+│
+├── tests/                # Testes unitários (pytest)
+│   ├── conftest.py       # Configuração comum de testes (ajuste de sys.path etc.)
+│   ├── test_sor_env.py   # Testes do ambiente B3LimitOrderBookEnv
+│   └── test_moe_dqn.py   # Testes da rede MoE (Expert)
+│
+├── notebooks/            # Notebooks Jupyter para exploração e demonstrações
+│   └── 01_exploracao_lob.ipynb
+│
+├── data/                 # Arquivos de dados brutos ou pré-processados (CSV, Parquet, etc.)
+│
+├── README.md             # Documentação principal do projeto
+├── requirements.txt      # Dependências do ambiente Python
+├── LICENSE.md            # Licença de uso acadêmico
+├── .gitignore            # Arquivos/pastas ignorados pelo Git
+└── .venv/                # Ambiente virtual Python (não versionado)
+```
 
 Aviso
 -----
