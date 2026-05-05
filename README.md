@@ -25,31 +25,56 @@ O projeto integra duas frentes principais de IA e modelagem de mercado:
 - **Mixture of Experts (MoE)**: rede neural com ativação esparsa (gating network) que identifica o regime de mercado (alta volatilidade, baixa liquidez etc.) e aciona especialistas específicos para processar o estado do LOB.
 - **Deep Q-Learning (DQN)**: o agente consome a saída da MoE para calcular Q-values e decidir ações como agredir o book, postar ordem passiva ou aguardar.
 
+Como Funciona
+-----------
+
+1. **Treinamento** (`train_agent.py`):
+   - Carrega dados do mercado B3
+   - Instancia o `SOREnv` (ambiente de simulação do Limit Order Book)
+   - Treina o agente DQN/MoE minimizando Implementation Shortfall
+   - Salva os pesos treinados em `models/moe_dqn_sor.pth`
+
+2. **Avaliação** (`evaluate_baselines.py` e `run_eval.py`):
+   - Carrega o modelo treinado
+   - Compara desempenho contra baselines (TWAP, VWAP, etc.)
+   - Calcula métricas: Slippage, Impact, Execução média
+   - Gera relatórios de comparação
+
+3. **Análise** (Notebooks):
+   - `01_exploracao_lob.ipynb`: Exploração inicial do Limit Order Book
+   - `02_train_agent.ipynb`: Treinamento interativo do agente
+   - `03_avaliacao_baselines.ipynb`: Visualização de resultados de avaliação
+
 Principais Funcionalidades
 --------------------------
 
-- Reconstrução e normalização de snapshots do LOB a partir de dados de ticks.
-- Ambiente de simulação financeira compatível com a API padrão de `gymnasium.Env`.
-- Implementação de DQN com Experience Replay e Target Network.
-- Benchmark contra estratégias rule-based (TWAP/VWAP).
+- **Reconstrução do LOB**: Normalização de snapshots do Limit Order Book a partir de dados de ticks.
+- **Ambiente de Simulação**: MDP (Markov Decision Process) compatível com `gymnasium.Env` que simula dinâmica de alta frequência do LOB.
+- **Rede MoE**: Mixture of Experts com gating network para identificação de regimes de mercado e ativação esparsa.
+- **Deep Q-Learning**: DQN com Experience Replay, Target Network e suporte a QR-DQN (Quantile Regression).
+- **Benchmark**: Avaliação comparativa contra estratégias rule-based como TWAP, VWAP e outras baselines.
+- **Testes Unitários**: Cobertura de testes com pytest para ambiente, modelo e funções de loss.
 
 Stack Tecnológico
 -----------------
 
-- Python 3.10+
+- Python 3.12.12
 - PyTorch (Deep Learning)
 - Gymnasium (Reinforcement Learning)
 - Polars / Pandas / NumPy (manipulação de dados)
 - Matplotlib / Seaborn (visualização)
+- pytest (testes)
 
 Requisitos
 ----------
 
-As dependências principais estão listadas em `requirements.txt`. Para uso básico:
+As dependências estão listadas em `requirements.txt`. Versões principais:
 
-- Python 3.10 ou superior
+- Python 3.12 ou superior
 - `torch>=2.2.2`
-- `gymnasium` (se aplicável ao ambiente)
+- `gymnasium`
+- `numpy`, `pandas`, `polars`
+- `pytest` (para executar testes)
 
 Instalação
 ----------
@@ -71,48 +96,68 @@ Instalação
 Uso
 ---
 
-Como ainda não há scripts Python versionados neste repositório (por exemplo, arquivos como `train_*.py` ou `evaluate_*.py`), os comandos abaixo são apenas um modelo de uso.
+**Treinamento do agente DQN/MoE:**
 
-Após criar os scripts de treinamento e avaliação, adapte os comandos, por exemplo:
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/train_agent.py
 
-- Treinamento do agente DQN:
+**Avaliação / benchmark contra baselines (TWAP/VWAP):**
 
-   python train_<nome_do_script>.py
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/evaluate_baselines.py
 
-- Avaliação / benchmark contra TWAP/VWAP:
+Ou, para executar o script de avaliação completo:
 
-   python evaluate_<nome_do_script>.py
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python run_eval.py
 
-Se você estiver utilizando notebooks Jupyter, certifique-se de ativar o ambiente virtual antes de abrir o Jupyter Kernel.
+**Executar testes:**
+
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python -m pytest tests/
+
+**Notebooks Jupyter:**
+
+Certifique-se de ativar o ambiente virtual antes de abrir o Jupyter Kernel:
+
+   source .venv/bin/activate
+   jupyter notebook
 
 Estrutura do Projeto
 --------------------
 
-Estrutura atual do repositório (resumida):
+Estrutura atual do repositório:
 
 ```
 tcc-sor-dql-moe/
 │
-├── src/                  # Código-fonte principal
-│   ├── __init__.py       # Torna 'src' um pacote Python
-│   ├── sor_env.py        # Ambiente do Limit Order Book (B3)
-│   └── moe_dqn.py        # Arquitetura Mixture of Experts (MoE) usada pelo DQN
+├── src/                        # Código-fonte principal
+│   ├── __init__.py             # Torna 'src' um pacote Python
+│   ├── sor_env.py              # Ambiente do Limit Order Book (B3)
+│   ├── moe_dqn.py              # Arquitetura Mixture of Experts (MoE)
+│   ├── qr_loss.py              # Implementação de QR-DQN loss
+│   ├── wrappers.py             # Wrappers customizados para o ambiente
+│   ├── train_agent.py          # Script de treinamento do agente DQN/MoE
+│   └── evaluate_baselines.py   # Avaliação e benchmark contra estratégias
 │
-├── tests/                # Testes unitários (pytest)
-│   ├── conftest.py       # Configuração comum de testes (ajuste de sys.path etc.)
-│   ├── test_sor_env.py   # Testes do ambiente B3LimitOrderBookEnv
-│   └── test_moe_dqn.py   # Testes da rede MoE (Expert)
+├── tests/                      # Testes unitários (pytest)
+│   ├── conftest.py             # Configuração comum de testes
+│   ├── test_sor_env.py         # Testes do ambiente B3LimitOrderBookEnv
+│   ├── test_moe_dqn.py         # Testes da rede MoE (Expert)
+│   └── test_evaluate_baselines.py  # Testes de avaliação de baselines
 │
-├── notebooks/            # Notebooks Jupyter para exploração e demonstrações
-│   └── 01_exploracao_lob.ipynb
+├── notebooks/                  # Notebooks Jupyter para exploração e demonstrações
+│   ├── 01_exploracao_lob.ipynb
+│   ├── 02_train_agent.ipynb
+│   └── 03_avaliacao_baselines.ipynb
 │
-├── data/                 # Arquivos de dados brutos ou pré-processados (CSV, Parquet, etc.)
+├── models/                     # Modelos treinados (pesos de rede neural)
+│   └── moe_dqn_sor.pth         # Checkpoint do agente DQN/MoE treinado
 │
-├── README.md             # Documentação principal do projeto
-├── requirements.txt      # Dependências do ambiente Python
-├── LICENSE.md            # Licença de uso acadêmico
-├── .gitignore            # Arquivos/pastas ignorados pelo Git
-└── .venv/                # Ambiente virtual Python (não versionado)
+├── data/                       # Arquivos de dados brutos ou pré-processados
+│
+├── run_eval.py                 # Script para execução completa de avaliação
+├── requirements.txt            # Dependências do ambiente Python
+├── README.md                   # Documentação principal do projeto
+├── LICENSE.md                  # Licença de uso acadêmico
+├── .gitignore                  # Arquivos/pastas ignorados pelo Git
+└── .venv/                      # Ambiente virtual Python (não versionado)
 ```
 
 Aviso
