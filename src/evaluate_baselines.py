@@ -1,14 +1,9 @@
-import torch
-from typing import Dict, Tuple
-from src.sor_env import MultiVenueSOREnv
+from __future__ import annotations
 
-def simulate_twap(env: MultiVenueSOREnv, total_inventory: float) -> Tuple[float, float, Dict]:
-    """
-    TWAP discreto e JUSTO:
-    - usa env.step() (mesmas regras do ambiente)
-    - action=1 repetido: comprar na B3
-    Retorna também quantos steps foram usados -> necessário para VSOT.
-    """
+from typing import Any, Dict, Tuple
+import torch
+
+def simulate_twap(env: Any, total_inventory: float) -> Tuple[float, float, Dict]:
     state, _ = env.reset()
     done = False
 
@@ -24,28 +19,21 @@ def simulate_twap(env: MultiVenueSOREnv, total_inventory: float) -> Tuple[float,
 
         steps += 1
         last_info = info
-
         total_cost += float(info["executed_cost"])
-        total_vol += float(info["executed_volume"])
+        total_vol  += float(info["executed_volume"])
         rejects += int(not bool(info["is_valid"]))
 
     avg_price = (total_cost / total_vol) if total_vol > 0 else 0.0
-    arrival = float(last_info["arrival_price"]) if last_info else float(env.arrival_price)
+    arrival = float(last_info["arrival_price"]) if last_info else float(getattr(env, "arrival_price", 0.0))
 
     return float(avg_price), float(total_vol), {
         "rejects": int(rejects),
         "steps": int(steps),
-        "arrival_price": arrival,
+        "arrival_price": float(arrival),
         "avg_price": float(avg_price),
     }
 
-
-def evaluate_agent(model, env: MultiVenueSOREnv) -> Tuple[float, float, Dict]:
-    """
-    Avaliação auditável:
-    - custo/volume vêm do info do env
-    - retorna steps -> necessário para VSOT
-    """
+def evaluate_agent(model: torch.nn.Module, env: Any) -> Tuple[float, float, Dict]:
     state, _ = env.reset()
     done = False
 
@@ -55,8 +43,11 @@ def evaluate_agent(model, env: MultiVenueSOREnv) -> Tuple[float, float, Dict]:
     steps = 0
     last_info = None
 
+    device = next(model.parameters()).device
+    model.eval()
+
     while not done:
-        st = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+        st = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         with torch.no_grad():
             q = model(st)
         action = int(torch.argmax(q, dim=1).item())
@@ -66,17 +57,16 @@ def evaluate_agent(model, env: MultiVenueSOREnv) -> Tuple[float, float, Dict]:
 
         steps += 1
         last_info = info
-
         total_cost += float(info["executed_cost"])
-        total_vol += float(info["executed_volume"])
+        total_vol  += float(info["executed_volume"])
         rejects += int(not bool(info["is_valid"]))
 
     avg_price = (total_cost / total_vol) if total_vol > 0 else 0.0
-    arrival = float(last_info["arrival_price"]) if last_info else float(env.arrival_price)
+    arrival = float(last_info["arrival_price"]) if last_info else float(getattr(env, "arrival_price", 0.0))
 
     return float(avg_price), float(total_vol), {
         "rejects": int(rejects),
         "steps": int(steps),
-        "arrival_price": arrival,
+        "arrival_price": float(arrival),
         "avg_price": float(avg_price),
     }

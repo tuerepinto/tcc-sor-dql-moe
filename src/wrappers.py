@@ -1,20 +1,26 @@
 import gymnasium as gym
 import numpy as np
 
-
 class SORFeatureWrapper(gym.ObservationWrapper):
     def __init__(self, env: gym.Env, vol_scale: float = 1000.0):
         super().__init__(env)
         self.vol_scale = float(vol_scale)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32)
 
+    def _get_T(self) -> float:
+        if hasattr(self.env, "n_steps"):
+            return float(max(1, int(self.env.n_steps) - 1))
+        if hasattr(self.env, "lob_b3"):
+            return float(max(1, len(self.env.lob_b3) - 1))
+        return 1.0
+
     def observation(self, obs: np.ndarray) -> np.ndarray:
         ask_b3, vol_b3, ask_base, vol_base, inv = obs.astype(np.float32)
 
         arrival = float(self.env.arrival_price)
         t = float(self.env.current_step)
-        T = float(max(1, len(self.env.lob_b3) - 1))
-
+        T = float(max(1, getattr(self.env, "n_steps", len(getattr(self.env, "lob_b3", []))) - 1))
+        
         rel_b3 = (ask_b3 / arrival) - 1.0
         rel_base = (ask_base / arrival) - 1.0
         rel_edge = rel_base - rel_b3

@@ -121,10 +121,16 @@ def train_dqn(env, model, seed: int | None = None):
                 q_all, aux_loss, _aux_info = _model_forward(model, states_t, return_aux=True)
                 q_sa = q_all.gather(1, actions_t)
 
+                if q_all.dim() != 2:
+                    raise ValueError(f"train_dqn espera q_values (B,A). Recebido: {tuple(q_all.shape)}")
+
                 # Double DQN target
                 with torch.no_grad():
                     online_next, _, _ = _model_forward(model, next_states_t, return_aux=False)
                     target_next, _, _ = _model_forward(target_model, next_states_t, return_aux=False)
+
+                    online_next = _action_values(online_next)
+                    target_next = _action_values(target_next)
 
                     next_actions = torch.argmax(online_next, dim=1, keepdim=True)
                     next_q = target_next.gather(1, next_actions)
@@ -211,6 +217,9 @@ def train_qr_dqn(env, model, n_quantiles: int = 51, kappa: float = 1.0, seed: in
 
                 q_all, aux_loss, _aux_info = _model_forward(model, states_t, return_aux=True)  # (B,A,NQ)
                 q_pred = q_all[torch.arange(BATCH_SIZE, device=device), actions_t, :]          # (B,NQ)
+
+                if q_all.dim() != 3:
+                    raise ValueError(f"train_qr_dqn espera q_values (B,A,NQ). Recebido: {tuple(q_all.shape)}")
 
                 with torch.no_grad():
                     online_next, _, _ = _model_forward(model, next_states_t, return_aux=False)  # (B,A,NQ)
