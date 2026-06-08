@@ -1,0 +1,7 @@
+seed: 42
+symbols: ["PETR4", "VALE3", "ITUB4"]
+venue_b3: "B3"
+venue_base: "BASE"
+episode_len: 500
+total_inventory: 10000
+max_slippage_pct: 0.001

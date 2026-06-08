@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Importa a classe do ambiente
-from src.sor_env import MultiVenueSOREnv
+from src.old.sor_env import MultiVenueSOREnv
 
 @pytest.fixture
 def env():
