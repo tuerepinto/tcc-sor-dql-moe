@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 # Importa a rede neural que criamos
-from src.moe_dqn import MoENetwork
+from src.models.moe_network import MoENetwork
 
 @pytest.fixture
 def model():

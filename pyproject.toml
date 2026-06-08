@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tcc-sor-dql-moe"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pyarrow>=24.0.0",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "."

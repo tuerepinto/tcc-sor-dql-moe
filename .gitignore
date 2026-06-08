@@ -45,5 +45,4 @@ runs/
 .DS_Store
 
 # Data / artifacts (ajuste conforme necessário)
-data/
 outputs/

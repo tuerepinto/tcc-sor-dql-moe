@@ -12,10 +12,10 @@ import torch.nn as nn
 import torch.optim as optim
 
 try:
-    from src.qr_loss import quantile_huber_loss
+    from src.old.qr_loss import quantile_huber_loss
 except ModuleNotFoundError:
     # Suporta execucao direta: `python src/train_agent.py`.
-    from qr_loss import quantile_huber_loss
+    from src.old.qr_loss import quantile_huber_loss
 
 
 # --- HIPERPARÂMETROS DO TREINAMENTO ---

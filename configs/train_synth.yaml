@@ -1,0 +1,4 @@
+seed: 42
+steps: 100
+total_inventory: 5000
+max_slippage_pct: 0.001
