@@ -1,171 +1,164 @@
-SMART ORDER ROUTER (SOR) INTELIGENTE PARA O MERCADO DE CAPITAIS BRASILEIRO: UMA ABORDAGEM BASEADA EM DEEP Q-LEARNING E MIXTURE OF EXPERTS
-================================================
+<div align="center">
 
-Otimização da execução de ordens institucionais com Deep Q-Learning (DQN) e Mixture of Experts (MoE), aplicado à microestrutura da B3.
+# 🧠 Smart Order Router (SOR) Inteligente
+### Uma Abordagem Baseada em Deep Q-Learning e Mixture of Experts para o Mercado de Capitais Brasileiro
 
-Este repositório contém o código-fonte e o ambiente de simulação desenvolvidos para um Trabalho de Conclusão de Curso (TCC) em Ciência de Dados / Inteligência Artificial aplicada a Finanças Quantitativas.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white)](https://pytorch.org/)
+[![Gymnasium](https://img.shields.io/badge/Gymnasium-0.29+-brightgreen.svg)](https://gymnasium.farama.org/)
+[![License: Academic](https://img.shields.io/badge/License-Academic-red.svg)](#licença)
 
-Visão Geral
------------
+*Trabalho de Conclusão de Curso (TCC) em Ciência de Dados e Inteligência Artificial Aplicada a Finanças Quantitativas.*
 
-O objetivo do projeto é substituir algoritmos estáticos tradicionais de roteamento de ordens (por exemplo, TWAP e VWAP) por um agente autônomo baseado em Deep Reinforcement Learning.
+[Visão Geral](#-visão-geral) • 
+[Arquitetura](#-arquitetura-e-metodologia) • 
+[Resultados](#-resultados-e-impacto-de-negócios) • 
+[Instalação](#-instalação-e-uso) • 
+[Estrutura](#-estrutura-do-projeto)
 
-Focado na microestrutura do mercado de capitais brasileiro (B3) e na fragmentação de liquidez, o agente aprende a fracionar e enviar grandes ordens institucionais minimizando:
+</div>
 
-- Implementation Shortfall
-- Slippage
-- Impacto de mercado
-
-Arquitetura
------------
-
-O projeto integra duas frentes principais de IA e modelagem de mercado:
-
-- **Ambiente customizado (Gymnasium)**: MDP que simula a dinâmica de alta frequência do Limit Order Book (LOB) Nível 2.
-- **Mixture of Experts (MoE)**: rede neural com ativação esparsa (gating network) que identifica o regime de mercado (alta volatilidade, baixa liquidez etc.) e aciona especialistas específicos para processar o estado do LOB.
-- **Deep Q-Learning (DQN)**: o agente consome a saída da MoE para calcular Q-values e decidir ações como agredir o book, postar ordem passiva ou aguardar.
-
-Como Funciona
------------
-
-1. **Treinamento** (`train_agent.py`):
-   - Carrega dados do mercado B3
-   - Instancia o `SOREnv` (ambiente de simulação do Limit Order Book)
-   - Treina o agente DQN/MoE minimizando Implementation Shortfall
-   - Salva os pesos treinados em `models/moe_dqn_sor.pth`
-
-2. **Avaliação** (`evaluate_baselines.py` e `run_eval.py`):
-   - Carrega o modelo treinado
-   - Compara desempenho contra baselines (TWAP, VWAP, etc.)
-   - Calcula métricas: Slippage, Impact, Execução média
-   - Gera relatórios de comparação
-
-3. **Análise** (Notebooks):
-   - `01_exploracao_lob.ipynb`: Exploração inicial do Limit Order Book
-   - `02_train_agent.ipynb`: Treinamento interativo do agente
-   - `03_avaliacao_baselines.ipynb`: Visualização de resultados de avaliação
-
-Principais Funcionalidades
---------------------------
-
-- **Reconstrução do LOB**: Normalização de snapshots do Limit Order Book a partir de dados de ticks.
-- **Ambiente de Simulação**: MDP (Markov Decision Process) compatível com `gymnasium.Env` que simula dinâmica de alta frequência do LOB.
-- **Rede MoE**: Mixture of Experts com gating network para identificação de regimes de mercado e ativação esparsa.
-- **Deep Q-Learning**: DQN com Experience Replay, Target Network e suporte a QR-DQN (Quantile Regression).
-- **Benchmark**: Avaliação comparativa contra estratégias rule-based como TWAP, VWAP e outras baselines.
-- **Testes Unitários**: Cobertura de testes com pytest para ambiente, modelo e funções de loss.
-
-Stack Tecnológico
------------------
-
-- Python 3.12.12
-- PyTorch (Deep Learning)
-- Gymnasium (Reinforcement Learning)
-- Polars / Pandas / NumPy (manipulação de dados)
-- Matplotlib / Seaborn (visualização)
-- pytest (testes)
-
-Requisitos
-----------
-
-As dependências estão listadas em `requirements.txt`. Versões principais:
-
-- Python 3.12 ou superior
-- `torch>=2.2.2`
-- `gymnasium`
-- `numpy`, `pandas`, `polars`
-- `pytest` (para executar testes)
-
-Instalação
-----------
-
-1. Clone o repositório:
-
-   git clone https://github.com/tuerepinto/tcc-sor-dql-moe.git
-   cd tcc-sor-dql-moe
-
-2. Crie e ative um ambiente virtual (opcional, mas recomendado):
-
-   python -m venv .venv
-   source .venv/bin/activate
-
-3. Instale as dependências:
-
-   pip install -r requirements.txt
-
-Uso
 ---
 
-**Treinamento do agente DQN/MoE:**
+## 📖 Visão Geral
 
-   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/train_agent.py
+Com a iminente quebra do monopólio da B3 e a chegada de novas *venues* (como a Base Exchange), a fragmentação de liquidez no Brasil exigirá sistemas de roteamento de ordens extremamente adaptativos. Algoritmos estáticos tradicionais (como TWAP e VWAP) deixam "pegadas" no mercado e são alvos fáceis para robôs de alta frequência (HFTs).
 
-**Avaliação / benchmark contra baselines (TWAP/VWAP):**
+Este projeto propõe a substituição dessas heurísticas por um **Agente Autônomo baseado em Deep Reinforcement Learning**. Focado na microestrutura do mercado, o agente aprende a fracionar e enviar grandes ordens institucionais de forma furtiva, minimizando:
+- **Implementation Shortfall (IS)**
+- **Slippage**
+- **Impacto de Mercado**
 
-   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/evaluate_baselines.py
+---
 
-Ou, para executar o script de avaliação completo:
+## 🏗️ Arquitetura e Metodologia
 
-   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python run_eval.py
+O projeto integra engenharia de sistemas complexos com modelos de Inteligência Artificial no estado da arte, modelando o mercado financeiro como um Processo de Decisão de Markov (MDP).
 
-**Executar testes:**
+### 1. Ambiente de Simulação (Gymnasium)
+O motor de simulação consome dados de profundidade do *Limit Order Book* (Nível 2) em milissegundos, extraídos via **yfinance / IBKR API**.
+- **Estado ($S_t$):** Tensor de 5 dimensões (Melhor Bid, Melhor Ask, Vol Bid, Vol Ask, Inventário Restante).
+- **Ações ($A_t$):** (0) Aguardar, (1) Comprar Lote Pequeno, (2) Comprar Lote Grande.
+- **Recompensa ($R_t$):** Penalidade financeira baseada no *Implementation Shortfall* real gerado pelo consumo de liquidez.
 
-   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python -m pytest tests/
+### 2. O Cérebro: Mixture of Experts (MoE) + DQN
+Em vez de uma rede neural monolítica, o núcleo decisório utiliza a arquitetura **Mixture of Experts (MoE)** integrada ao **Deep Q-Network (DQN)**:
+- Uma *Gating Network* identifica o regime de mercado (alta volatilidade, baixa liquidez).
+- O estado é roteado dinamicamente para "Especialistas" neurais específicos.
+- O agente calcula os *Q-Values* para decidir a ação ótima em frações de segundo, evitando o esquecimento catastrófico (*catastrophic forgetting*).
 
-**Notebooks Jupyter:**
+---
 
-Certifique-se de ativar o ambiente virtual antes de abrir o Jupyter Kernel:
+## 📊 Resultados e Impacto de Negócios
 
-   source .venv/bin/activate
-   jupyter notebook
+O modelo foi avaliado em um cenário *Out-of-Sample* simulando uma ordem institucional de 10.000 ações, comparado diretamente contra o *baseline* TWAP.
 
-Estrutura do Projeto
---------------------
+### Performance Quantitativa
+| Métrica | TWAP (Baseline estático) | MoE-DQN (IA Adaptativa) |
+| :--- | :--- | :--- |
+| **Comportamento** | Cego à liquidez imediata | Furtivo e adaptativo |
+| **Preço Médio** | Superior (Pior) | Inferior (Melhor) |
+| **IS / Slippage** | Alto | Drasticamente reduzido |
+| **Rejeições** | Frequentes em baixa liquidez | Mitigadas pela IA |
 
-Estrutura atual do repositório:
+<details>
+<summary><b>📈 Clique aqui para ver os Gráficos de Desempenho</b></summary>
+<br>
 
+*(Nota: Adicione as imagens geradas pelos notebooks na pasta `docs/` do seu repositório)*
+
+**1. Curva de Aprendizado do Agente (Convergência)**
+> O gráfico comprova que o agente aprende a otimizar a recompensa ao longo de 500 episódios.
+> 
+> `![Curva de Aprendizado](docs/learning_curve.png)`
+
+**2. Comparação de Performance (TWAP vs MoE-DQN)**
+> Redução do Implementation Shortfall e economia financeira total gerada.
+> 
+> `![Comparação de Performance](docs/performance_comparison.png)`
+
+**3. Diagnóstico Microestrutural (Raio-X da IA)**
+> Demonstração da *Gating Network* alternando especialistas conforme a liquidez do mercado.
+> 
+> `![Diagnóstico Microestrutural](docs/diagnostic_panels.png)`
+
+</details>
+
+### 💼 Viabilidade Econômica e Lei do Bem
+Além da economia direta gerada pela redução de *slippage* (que pode representar dezenas de milhões de reais anualmente para uma mesa institucional), o caráter inovador da arquitetura MoE-DQN permite o enquadramento do projeto na **Lei do Bem (Lei nº 11.196/05)**. Isso transforma o custo de infraestrutura de IA e P&D em um investimento subsidiado por isenções fiscais, gerando um ROI altamente assimétrico.
+
+---
+
+## 🚀 Instalação e Uso
+
+### Pré-requisitos
+- Python 3.12+
+- Gerenciador de pacotes `uv` (recomendado) ou `pip`
+
+### Instalação
+```bash
+# Clone o repositório
+git clone https://github.com/tuerepinto/tcc-sor-dql-moe.git
+cd tcc-sor-dql-moe
+
+# Crie e ative o ambiente virtual
+python -m venv .venv
+source .venv/bin/activate  # No Windows: .venv\Scripts\activate
+
+# Instale as dependências
+pip install -r requirements.txt
 ```
+
+### Execução
+**1. Treinamento do Agente:**
+```bash
+python src/train_agent.py
+```
+
+**2. Avaliação e Benchmark (TWAP vs IA):**
+```bash
+python src/evaluate_baselines.py
+# ou execute o pipeline completo:
+python run_eval.py
+```
+
+**3. Testes Unitários:**
+```bash
+python -m pytest tests/
+```
+
+---
+
+## 📂 Estrutura do Projeto
+
+```text
 tcc-sor-dql-moe/
-│
-├── src/                        # Código-fonte principal
-│   ├── __init__.py             # Torna 'src' um pacote Python
-│   ├── sor_env.py              # Ambiente do Limit Order Book (B3)
-│   ├── moe_dqn.py              # Arquitetura Mixture of Experts (MoE)
-│   ├── qr_loss.py              # Implementação de QR-DQN loss
-│   ├── wrappers.py             # Wrappers customizados para o ambiente
-│   ├── train_agent.py          # Script de treinamento do agente DQN/MoE
-│   └── evaluate_baselines.py   # Avaliação e benchmark contra estratégias
-│
-├── tests/                      # Testes unitários (pytest)
-│   ├── conftest.py             # Configuração comum de testes
-│   ├── test_sor_env.py         # Testes do ambiente B3LimitOrderBookEnv
-│   ├── test_moe_dqn.py         # Testes da rede MoE (Expert)
-│   └── test_evaluate_baselines.py  # Testes de avaliação de baselines
-│
-├── notebooks/                  # Notebooks Jupyter para exploração e demonstrações
+├── src/                      # Código-fonte principal
+│   ├── sor_env.py            # Ambiente MDP do Limit Order Book
+│   ├── moe_dqn.py            # Arquitetura Mixture of Experts (MoE)
+│   ├── train_agent.py        # Pipeline de treinamento
+│   └── evaluate_baselines.py # Benchmark contra TWAP/VWAP
+├── notebooks/                # Análises e visualizações (Jupyter)
 │   ├── 01_exploracao_lob.ipynb
 │   ├── 02_train_agent.ipynb
 │   └── 03_avaliacao_baselines.ipynb
-│
-├── models/                     # Modelos treinados (pesos de rede neural)
-│   └── moe_dqn_sor.pth         # Checkpoint do agente DQN/MoE treinado
-│
-├── data/                       # Arquivos de dados brutos ou pré-processados
-│
-├── run_eval.py                 # Script para execução completa de avaliação
-├── requirements.txt            # Dependências do ambiente Python
-├── README.md                   # Documentação principal do projeto
-├── LICENSE.md                  # Licença de uso acadêmico
-├── .gitignore                  # Arquivos/pastas ignorados pelo Git
-└── .venv/                      # Ambiente virtual Python (não versionado)
+├── tests/                    # Testes unitários (pytest)
+├── models/                   # Checkpoints do modelo treinado (.pth)
+├── data/                     # Datasets sintéticos e Tick Data
+└── requirements.txt          # Dependências do projeto
 ```
 
-Aviso
------
+---
 
-Este projeto é estritamente acadêmico e voltado à pesquisa em microestrutura de mercado. Os modelos aqui treinados **não** constituem recomendação de investimento nem devem ser utilizados em produção (dinheiro real) sem validações adequadas de risco, compliance e auditoria independente.
+## ⚠️ Aviso Legal
 
-Licença
--------
+Este projeto é estritamente acadêmico e voltado à pesquisa em microestrutura de mercado. Os modelos aqui treinados **não constituem recomendação de investimento** nem devem ser utilizados em produção (dinheiro real) sem validações adequadas de risco, *compliance* (travas e *kill switches*) e auditoria independente.
 
-Este projeto é disponibilizado sob uma Licença de Uso Acadêmico. Para detalhes completos sobre permissões e restrições (incluindo proibição de uso comercial), consulte o arquivo `LICENSE.md` na raiz do repositório.
+## 📄 Licença
+
+Este projeto é disponibilizado sob uma **Licença de Uso Acadêmico**. Para detalhes completos sobre permissões e restrições (incluindo a proibição de uso comercial não autorizado), consulte o arquivo `LICENSE.md` na raiz do repositório.
+
+---
+<div align="center">
+  <i>Desenvolvido por <b>Tuerê Pinto</b> — 2026</i>
+</div>
