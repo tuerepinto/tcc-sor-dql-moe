@@ -8,7 +8,7 @@
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-0.29+-brightgreen.svg)](https://gymnasium.farama.org/)
 [![License: Academic](https://img.shields.io/badge/License-Academic-red.svg)](#licença)
 
-*Trabalho de Conclusão de Curso (TCC) em Ciência de Dados e Inteligência Artificial Aplicada a Finanças Quantitativas.*
+*Trabalho de Conclusão de Curso (TCC) em Inteligência Artificial e Aprendizado de Máquina.*
 
 [Visão Geral](#-visão-geral) • 
 [Arquitetura](#-arquitetura-e-metodologia) • 
