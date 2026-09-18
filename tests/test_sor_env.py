@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # Importa a classe do ambiente
-from src.old.sor_env import MultiVenueSOREnv
+from src.envs.sor_env_parquet import MultiVenueSOREnvParquet  
 
 @pytest.fixture
 def env():
@@ -42,7 +42,7 @@ def env():
     lob_base = pd.DataFrame(lob_base_data)
 
     # Instancia o ambiente com 1.000 ações para executar
-    environment = MultiVenueSOREnv(lob_b3=lob_b3, lob_base=lob_base, total_inventory=1000)
+    environment = MultiVenueSOREnvParquet(lob_b3=lob_b3, lob_base=lob_base, total_inventory=1000)
     environment.reset()
 
     return environment

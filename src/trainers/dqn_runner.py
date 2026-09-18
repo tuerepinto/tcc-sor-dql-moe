@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from src.models.moe_network import MoENetwork
-from src.train_agent import train_dqn
+from src.trainers.train_agent import train_dqn
 
 @dataclass
 class TrainConfig:
