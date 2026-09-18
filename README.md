@@ -1,212 +1,171 @@
-# SMART ORDER ROUTER (SOR) INTELIGENTE PARA O MERCADO DE CAPITAIS BRASILEIRO
+SMART ORDER ROUTER (SOR) INTELIGENTE PARA O MERCADO DE CAPITAIS BRASILEIRO: UMA ABORDAGEM BASEADA EM DEEP Q-LEARNING E MIXTURE OF EXPERTS
+================================================
 
-Projeto acadêmico de otimização de execução de ordens institucionais com Deep Q-Learning e Mixture of Experts, aplicado à microestrutura do mercado brasileiro.
+Otimização da execução de ordens institucionais com Deep Q-Learning (DQN) e Mixture of Experts (MoE), aplicado à microestrutura da B3.
 
-## Visão Geral
+Este repositório contém o código-fonte e o ambiente de simulação desenvolvidos para um Trabalho de Conclusão de Curso (TCC) em Ciência de Dados / Inteligência Artificial aplicada a Finanças Quantitativas.
 
-Este repositório implementa um ambiente de simulação de mercado e um pipeline de treinamento/avaliação para um agente de roteamento de ordens baseado em Reinforcement Learning. O foco é aprender a decidir como fragmentar e enviar ordens em um ambiente de livro de ordens (LOB) com informação de liquidez, spread e dinâmica de execução.
+Visão Geral
+-----------
 
-O trabalho combina:
+O objetivo do projeto é substituir algoritmos estáticos tradicionais de roteamento de ordens (por exemplo, TWAP e VWAP) por um agente autônomo baseado em Deep Reinforcement Learning.
 
-- ambiente de simulação do mercado em Gymnasium;
-- rede neural do tipo Mixture of Experts (MoE);
-- algoritmo de aprendizado Deep Q-Learning;
-- suporte a variantes como QR-DQN;
-- avaliação de desempenho contra baselines e replay de execução.
+Focado na microestrutura do mercado de capitais brasileiro (B3) e na fragmentação de liquidez, o agente aprende a fracionar e enviar grandes ordens institucionais minimizando:
 
-## Estrutura Atual do Repositório
+- Implementation Shortfall
+- Slippage
+- Impacto de mercado
 
-```text
+Arquitetura
+-----------
+
+O projeto integra duas frentes principais de IA e modelagem de mercado:
+
+- **Ambiente customizado (Gymnasium)**: MDP que simula a dinâmica de alta frequência do Limit Order Book (LOB) Nível 2.
+- **Mixture of Experts (MoE)**: rede neural com ativação esparsa (gating network) que identifica o regime de mercado (alta volatilidade, baixa liquidez etc.) e aciona especialistas específicos para processar o estado do LOB.
+- **Deep Q-Learning (DQN)**: o agente consome a saída da MoE para calcular Q-values e decidir ações como agredir o book, postar ordem passiva ou aguardar.
+
+Como Funciona
+-----------
+
+1. **Treinamento** (`train_agent.py`):
+   - Carrega dados do mercado B3
+   - Instancia o `SOREnv` (ambiente de simulação do Limit Order Book)
+   - Treina o agente DQN/MoE minimizando Implementation Shortfall
+   - Salva os pesos treinados em `models/moe_dqn_sor.pth`
+
+2. **Avaliação** (`evaluate_baselines.py` e `run_eval.py`):
+   - Carrega o modelo treinado
+   - Compara desempenho contra baselines (TWAP, VWAP, etc.)
+   - Calcula métricas: Slippage, Impact, Execução média
+   - Gera relatórios de comparação
+
+3. **Análise** (Notebooks):
+   - `01_exploracao_lob.ipynb`: Exploração inicial do Limit Order Book
+   - `02_train_agent.ipynb`: Treinamento interativo do agente
+   - `03_avaliacao_baselines.ipynb`: Visualização de resultados de avaliação
+
+Principais Funcionalidades
+--------------------------
+
+- **Reconstrução do LOB**: Normalização de snapshots do Limit Order Book a partir de dados de ticks.
+- **Ambiente de Simulação**: MDP (Markov Decision Process) compatível com `gymnasium.Env` que simula dinâmica de alta frequência do LOB.
+- **Rede MoE**: Mixture of Experts com gating network para identificação de regimes de mercado e ativação esparsa.
+- **Deep Q-Learning**: DQN com Experience Replay, Target Network e suporte a QR-DQN (Quantile Regression).
+- **Benchmark**: Avaliação comparativa contra estratégias rule-based como TWAP, VWAP e outras baselines.
+- **Testes Unitários**: Cobertura de testes com pytest para ambiente, modelo e funções de loss.
+
+Stack Tecnológico
+-----------------
+
+- Python 3.12.12
+- PyTorch (Deep Learning)
+- Gymnasium (Reinforcement Learning)
+- Polars / Pandas / NumPy (manipulação de dados)
+- Matplotlib / Seaborn (visualização)
+- pytest (testes)
+
+Requisitos
+----------
+
+As dependências estão listadas em `requirements.txt`. Versões principais:
+
+- Python 3.12 ou superior
+- `torch>=2.2.2`
+- `gymnasium`
+- `numpy`, `pandas`, `polars`
+- `pytest` (para executar testes)
+
+Instalação
+----------
+
+1. Clone o repositório:
+
+   git clone https://github.com/tuerepinto/tcc-sor-dql-moe.git
+   cd tcc-sor-dql-moe
+
+2. Crie e ative um ambiente virtual (opcional, mas recomendado):
+
+   python -m venv .venv
+   source .venv/bin/activate
+
+3. Instale as dependências:
+
+   pip install -r requirements.txt
+
+Uso
+---
+
+**Treinamento do agente DQN/MoE:**
+
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/train_agent.py
+
+**Avaliação / benchmark contra baselines (TWAP/VWAP):**
+
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python src/evaluate_baselines.py
+
+Ou, para executar o script de avaliação completo:
+
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python run_eval.py
+
+**Executar testes:**
+
+   /Users/tuerepinto/Documents/repository/tcc-sor-dql-moe/.venv/bin/python -m pytest tests/
+
+**Notebooks Jupyter:**
+
+Certifique-se de ativar o ambiente virtual antes de abrir o Jupyter Kernel:
+
+   source .venv/bin/activate
+   jupyter notebook
+
+Estrutura do Projeto
+--------------------
+
+Estrutura atual do repositório:
+
+```
 tcc-sor-dql-moe/
-├── LICENSE.md
-├── README.md
-├── pyproject.toml
-├── requirements.txt
-├── configs/
-│   ├── train_12m.yaml
-│   └── train_synth.yaml
-├── data/
-│   └── l2_parquet/
-│       └── venue=...
-├── logs/
-│   └── rewards_synthetic.csv
-├── models/
-│   ├── moe_dqn_sor.pth
-│   ├── moe_dqn_sor_ITUB4_12m.pth
-│   ├── moe_dqn_sor_PETR4_12m.pth
-│   ├── moe_dqn_sor_SYNTHETIC.pth
-│   └── moe_dqn_sor_VALE3_12m.pth
-├── notebooks/
+│
+├── src/                        # Código-fonte principal
+│   ├── __init__.py             # Torna 'src' um pacote Python
+│   ├── sor_env.py              # Ambiente do Limit Order Book (B3)
+│   ├── moe_dqn.py              # Arquitetura Mixture of Experts (MoE)
+│   ├── qr_loss.py              # Implementação de QR-DQN loss
+│   ├── wrappers.py             # Wrappers customizados para o ambiente
+│   ├── train_agent.py          # Script de treinamento do agente DQN/MoE
+│   └── evaluate_baselines.py   # Avaliação e benchmark contra estratégias
+│
+├── tests/                      # Testes unitários (pytest)
+│   ├── conftest.py             # Configuração comum de testes
+│   ├── test_sor_env.py         # Testes do ambiente B3LimitOrderBookEnv
+│   ├── test_moe_dqn.py         # Testes da rede MoE (Expert)
+│   └── test_evaluate_baselines.py  # Testes de avaliação de baselines
+│
+├── notebooks/                  # Notebooks Jupyter para exploração e demonstrações
 │   ├── 01_exploracao_lob.ipynb
 │   ├── 02_train_agent.ipynb
 │   └── 03_avaliacao_baselines.ipynb
-├── scripts/
-│   ├── bootstrap_l2_parquet.py
-│   ├── build_l2_dataset.py
-│   ├── eval_replay.py
-│   ├── online_runner.py
-│   ├── train_offline_12m.py
-│   ├── train_synth.py
-│   └── validate_l2_dataset.py
-├── src/
-│   ├── __init__.py
-│   ├── data/
-│   │   ├── __init__.py
-│   │   ├── l2_dataset.py
-│   │   ├── offline_dataset.py
-│   │   └── paths.py
-│   ├── envs/
-│   │   ├── __init__.py
-│   │   ├── factory.py
-│   │   ├── sor_env_numpy.py
-│   │   └── sor_env_parquet.py
-│   ├── eval/
-│   │   ├── __init__.py
-│   │   └── replay.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── model_io.py
-│   │   └── moe_network.py
-│   └── trainers/
-│       ├── __init__.py
-│       ├── dqn_runner.py
-│       ├── qr_loss.py
-│       └── train_agent.py
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py
-│   ├── test_evaluate_baselines.py
-│   ├── test_moe_dqn.py
-│   └── test_sor_env.py
-└── .gitignore
+│
+├── models/                     # Modelos treinados (pesos de rede neural)
+│   └── moe_dqn_sor.pth         # Checkpoint do agente DQN/MoE treinado
+│
+├── data/                       # Arquivos de dados brutos ou pré-processados
+│
+├── run_eval.py                 # Script para execução completa de avaliação
+├── requirements.txt            # Dependências do ambiente Python
+├── README.md                   # Documentação principal do projeto
+├── LICENSE.md                  # Licença de uso acadêmico
+├── .gitignore                  # Arquivos/pastas ignorados pelo Git
+└── .venv/                      # Ambiente virtual Python (não versionado)
 ```
 
-## Componentes Principais
+Aviso
+-----
 
-### Ambiente de mercado
+Este projeto é estritamente acadêmico e voltado à pesquisa em microestrutura de mercado. Os modelos aqui treinados **não** constituem recomendação de investimento nem devem ser utilizados em produção (dinheiro real) sem validações adequadas de risco, compliance e auditoria independente.
 
-A lógica do ambiente fica em:
+Licença
+-------
 
-- `src/envs/factory.py`
-- `src/envs/sor_env_numpy.py`
-- `src/envs/sor_env_parquet.py`
-
-Esses módulos definem a criação do ambiente, tanto para dados NumPy quanto para dados em parquet do dataset L2.
-
-### Dados e preprocessamento
-
-A preparação e leitura de dados estão em:
-
-- `src/data/paths.py`
-- `src/data/l2_dataset.py`
-- `src/data/offline_dataset.py`
-- `scripts/build_l2_dataset.py`
-- `scripts/bootstrap_l2_parquet.py`
-- `scripts/validate_l2_dataset.py`
-
-### Modelo e treinamento
-
-Os blocos do agente e do treinamento estão em:
-
-- `src/models/moe_network.py`
-- `src/models/model_io.py`
-- `src/trainers/dqn_runner.py`
-- `src/trainers/train_agent.py`
-- `src/trainers/qr_loss.py`
-
-### Avaliação
-
-A avaliação de replay e baseline está concentrada em:
-
-- `src/eval/replay.py`
-- `scripts/eval_replay.py`
-- `scripts/online_runner.py`
-
-## Fluxo de Trabalho
-
-### 1) Preparar dados
-
-O projeto inclui scripts para montar e validar o conjunto de dados L2:
-
-```bash
-python scripts/bootstrap_l2_parquet.py
-python scripts/validate_l2_dataset.py
-```
-
-### 2) Treinar o agente
-
-Os treinamentos oficiais ficam em scripts na pasta `scripts/`:
-
-```bash
-python scripts/train_offline_12m.py
-python scripts/train_synth.py
-```
-
-A rotina em `src/trainers/dqn_runner.py` coordena a execução do treino e salva checkpoints em `models/`.
-
-### 3) Avaliar o agente
-
-Para avaliar o modelo em um cenário de replay:
-
-```bash
-python scripts/eval_replay.py
-```
-
-### 4) Executar notebooks
-
-Os notebooks de exploração e análise estão em `notebooks/`:
-
-- `01_exploracao_lob.ipynb`
-- `02_train_agent.ipynb`
-- `03_avaliacao_baselines.ipynb`
-
-## Requisitos
-
-- Python 3.10+
-- PyTorch
-- Gymnasium
-- NumPy / Pandas / PyArrow
-- pytest
-
-As dependências do projeto estão em `requirements.txt`.
-
-## Instalação
-
-```bash
-git clone https://github.com/tuerepinto/tcc-sor-dql-moe.git
-cd tcc-sor-dql-moe
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-## Execução Rápida
-
-### Testes
-
-```bash
-python -m pytest tests -q
-```
-
-### Treinamento do agente
-
-```bash
-python scripts/train_offline_12m.py
-```
-
-### Avaliação
-
-```bash
-python scripts/eval_replay.py
-```
-
-## Observações
-
-- Este projeto é de natureza acadêmica e experimental.
-- O treinamento e a avaliação dependem da disponibilidade dos dados em `data/l2_parquet`.
-- Os checkpoints gerados ficam na pasta `models/` e podem ser reutilizados em execuções posteriores.
-- O projeto usa uma estrutura modular em `src/`, em vez de uma única pasta com scripts no nível raiz.
-
-## Licença
-
-Este repositório é distribuído sob os termos da licença presente em `LICENSE.md`.
+Este projeto é disponibilizado sob uma Licença de Uso Acadêmico. Para detalhes completos sobre permissões e restrições (incluindo proibição de uso comercial), consulte o arquivo `LICENSE.md` na raiz do repositório.
