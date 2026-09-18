@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 # Importando as classes e funções do seu projeto
-from src.old.sor_env import MultiVenueSOREnv
+from src.envs.sor_env_numpy import MultiVenueSOREnv
 from src.models.moe_network import MoENetwork
 from src.old.evaluate_baselines import simulate_twap, evaluate_agent
 

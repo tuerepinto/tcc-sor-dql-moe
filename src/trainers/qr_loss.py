@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 
+# Quantile Huber Loss function
 def quantile_huber_loss(pred: torch.Tensor, target: torch.Tensor, taus: torch.Tensor, kappa: float = 1.0) -> torch.Tensor:
     """
     pred:   (B, NQ)  quantis previstos para uma ação
