@@ -165,6 +165,13 @@ Aviso
 
 Este projeto é estritamente acadêmico e voltado à pesquisa em microestrutura de mercado. Os modelos aqui treinados **não** constituem recomendação de investimento nem devem ser utilizados em produção (dinheiro real) sem validações adequadas de risco, compliance e auditoria independente.
 
+Playbook
+--------
+
+O playbook do projeto reúne o guia operacional para execução, treinamento, avaliação e manutenção do sistema SOR. Ele descreve a sequência recomendada de uso do ambiente, os checkpoints de validação, as convenções de experimentação e os critérios para comparar resultados entre baselines e modelos.
+
+Para consultar o guia completo, incluindo fluxos de execução, checklist de reprodução e boas práticas de pesquisa, consulte o arquivo `PLAYBOOK.md` na raiz do repositório.
+
 Licença
 -------
 
